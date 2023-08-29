@@ -15,7 +15,7 @@ TH_TONE_MARKS = [
     "0xe4d",
     "0xe4e",
 ]
-TH_UNDER_VOWELS = ["0xe38", "0xe39", "\0xe3A"]
+TH_UNDER_VOWELS = ["0xe38", "0xe39", "0xe3A"]
 TH_UPPER_VOWELS = ["0xe31", "0xe34", "0xe35", "0xe36", "0xe37"]
 
 
@@ -69,8 +69,25 @@ def _compute_character_width(image_font: ImageFont, character: str) -> int:
         return 0
     # Casting as int to preserve the old behavior
     return round(image_font.getlength(character))
-
-
+def _compute_character_height(image_font: ImageFont, character: str, next_charactor: str) -> int:
+    if len(character) == 1 and (
+        "{0:#x}".format(ord(character))
+        in TH_TONE_MARKS + TH_UPPER_VOWELS
+    ) and len(next_charactor) == 1 and (
+        "{0:#x}".format(ord(next_charactor))
+        in TH_TONE_MARKS + TH_UPPER_VOWELS
+    ):
+        return round(image_font.getsize(character)[1] + image_font.getsize(next_charactor)[1]-image_font.getsize('ก')[1])
+    
+    elif len(character) == 1 and (
+        "{0:#x}".format(ord(character))
+        in TH_UNDER_VOWELS + TH_TONE_MARKS + TH_UPPER_VOWELS
+    ):
+        return round(image_font.getsize(character)[1])
+    else :
+        return round(image_font.getsize(character)[1])
+    # Casting as int to preserve the old behaviors
+    
 def _generate_horizontal_text(
     text: str,
     font: str,
@@ -104,7 +121,7 @@ def _generate_horizontal_text(
     if not word_split:
         text_width += character_spacing * (len(text) - 1)
 
-    text_height = max([get_text_height(image_font, p) for p in splitted_text])
+    text_height = max([_compute_character_height(image_font, splitted_text[i], splitted_text[i+1]) if i<len(splitted_text)-1 else get_text_height(image_font, splitted_text[i]) for i in range(len(splitted_text))])
 
     txt_img = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
     txt_mask = Image.new("RGB", (text_width, text_height), (0, 0, 0))
