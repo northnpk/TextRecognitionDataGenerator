@@ -69,25 +69,21 @@ def _compute_character_width(image_font: ImageFont, character: str) -> int:
         return 0
     # Casting as int to preserve the old behavior
     return round(image_font.getlength(character))
-def _compute_character_height(image_font: ImageFont, character: str, next_charactor: str) -> int:
+def _compute_character_height(image_font: ImageFont, character: str, next_char: str) -> int:
     if len(character) == 1 and (
         "{0:#x}".format(ord(character))
-        in TH_TONE_MARKS + TH_UPPER_VOWELS
-    ) and len(next_charactor) == 1 and (
-        "{0:#x}".format(ord(next_charactor))
-        in TH_TONE_MARKS + TH_UPPER_VOWELS
+        in TH_UNDER_VOWELS + TH_UNDER_VOWELS
     ):
-        return round(image_font.getsize(character)[1] + image_font.getsize(next_charactor)[1]-image_font.getsize('ก')[1])
-    
+        return 0
     elif len(character) == 1 and (
         "{0:#x}".format(ord(character))
-        in TH_UNDER_VOWELS + TH_TONE_MARKS + TH_UPPER_VOWELS
-    ):
-        return round(image_font.getsize(character)[1])
-    else :
-        return round(image_font.getsize(character)[1])
-    # Casting as int to preserve the old behaviors
-    
+        in TH_UPPER_VOWELS + TH_TONE_MARKS
+    ) and len(next_char) == 1 and ("{0:#x}".format(ord(character))
+        in TH_TONE_MARKS + TH_UPPER_VOWELS):
+        return round(image_font.getsize(character)[1]+image_font.getsize(next_char)[1]-image_font.getsize('ก')[1])
+    # Casting as int to preserve the old behavior
+    return round(image_font.getsize(character)[1])
+
 def _generate_horizontal_text(
     text: str,
     font: str,
@@ -100,7 +96,7 @@ def _generate_horizontal_text(
     stroke_width: int = 0,
     stroke_fill: str = "#282828",
 ) -> Tuple:
-    image_font = ImageFont.truetype(font=font, size=font_size)
+    image_font = ImageFont.truetype(font=font, size=font_size, layout_engine=ImageFont.Layout.RAQM)
 
     space_width = int(get_text_width(image_font, " ") * space_width)
 
@@ -117,11 +113,12 @@ def _generate_horizontal_text(
         _compute_character_width(image_font, p) if p != " " else space_width
         for p in splitted_text
     ]
-    text_width = sum(piece_widths)
+    text_width = sum(piece_widths) + int(0.1*font_size)
     if not word_split:
         text_width += character_spacing * (len(text) - 1)
 
-    text_height = max([_compute_character_height(image_font, splitted_text[i], splitted_text[i+1]) if i<len(splitted_text)-1 else get_text_height(image_font, splitted_text[i]) for i in range(len(splitted_text))])
+    # text_height = max([get_text_height(image_font, p) for p in splitted_text])
+    text_height = get_text_height(image_font, text) + int(0.5*font_size)
 
     txt_img = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
     txt_mask = Image.new("RGB", (text_width, text_height), (0, 0, 0))
@@ -147,25 +144,27 @@ def _generate_horizontal_text(
         rnd.randint(min(stroke_c1[1], stroke_c2[1]), max(stroke_c1[1], stroke_c2[1])),
         rnd.randint(min(stroke_c1[2], stroke_c2[2]), max(stroke_c1[2], stroke_c2[2])),
     )
-
-    for i, p in enumerate(splitted_text):
-        txt_img_draw.text(
-            (sum(piece_widths[0:i]) + i * character_spacing * int(not word_split), 0),
-            p,
-            fill=fill,
-            font=image_font,
-            stroke_width=stroke_width,
-            stroke_fill=stroke_fill,
-        )
-        txt_mask_draw.text(
-            (sum(piece_widths[0:i]) + i * character_spacing * int(not word_split), 0),
-            p,
-            fill=((i + 1) // (255 * 255), (i + 1) // 255, (i + 1) % 255),
-            font=image_font,
-            stroke_width=stroke_width,
-            stroke_fill=stroke_fill,
-        )
-
+    txt_img_draw.text((0,int(0.5*font_size)), text, fill=fill, font=image_font, stroke_width=stroke_width, stroke_fill=stroke_fill)
+    txt_mask_draw.text((0,0), text, fill=(255,255,255), font=image_font, stroke_width=stroke_width, stroke_fill=stroke_fill)
+    # for i, p in enumerate(splitted_text):
+    #     print(i)
+    #     txt_img_draw.text(
+    #         (sum(piece_widths[0:i]) + i * character_spacing * int(not word_split), 0),
+    #         p,
+    #         fill=fill,
+    #         font=image_font,
+    #         stroke_width=stroke_width,
+    #         stroke_fill=stroke_fill,
+    #     )
+    #     txt_mask_draw.text(
+    #         (sum(piece_widths[0:i]) + i * character_spacing * int(not word_split), 0),
+    #         p,
+    #         fill=((i + 1) // (255 * 255), (i + 1) // 255, (i + 1) % 255),
+    #         font=image_font,
+    #         stroke_width=stroke_width,
+    #         stroke_fill=stroke_fill,
+    #     )
+    
     if fit:
         return txt_img.crop(txt_img.getbbox()), txt_mask.crop(txt_img.getbbox())
     else:
