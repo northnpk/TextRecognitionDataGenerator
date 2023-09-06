@@ -17,6 +17,7 @@ TH_TONE_MARKS = [
 ]
 TH_UNDER_VOWELS = ["0xe38", "0xe39", "0xe3A"]
 TH_UPPER_VOWELS = ["0xe31", "0xe34", "0xe35", "0xe36", "0xe37"]
+TH_SARA_AM = "0xe33"
 
 
 def generate(
@@ -108,7 +109,66 @@ def _generate_horizontal_text(
         splitted_text.pop()
     else:
         splitted_text = text
+        
+    th_sign_grouping_text = []
+    i = 0
+    while i < len(splitted_text):
+        if i < len(splitted_text)-2:
+            th_2 = "{0:#x}".format(ord(splitted_text[i+1]))
+            th_3 = "{0:#x}".format(ord(splitted_text[i+2]))
+            if th_2 in TH_TONE_MARKS and (th_3 in TH_UPPER_VOWELS or th_3 in TH_UNDER_VOWELS):
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+2]+splitted_text[i+1])
+                i += 2
+            elif th_2 in TH_TONE_MARKS and th_3 == TH_SARA_AM:
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+1]+splitted_text[i+2])
+                i += 2
+            elif th_2 in TH_UPPER_VOWELS and th_3 in TH_TONE_MARKS:
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+1]+splitted_text[i+2])
+                i += 2
+            elif th_2 in TH_UNDER_VOWELS and th_3 in TH_TONE_MARKS:
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+1]+splitted_text[i+2])
+                i += 2
+            elif th_2 in TH_SARA_AM and th_3 in TH_TONE_MARKS:
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+2]+splitted_text[i+1])
+                i += 2
+            elif th_2 in TH_TONE_MARKS and (th_3 not in TH_UPPER_VOWELS or th_3 not in TH_UNDER_VOWELS or th_3 != TH_SARA_AM):
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+1])
+                i += 1
+            elif th_2 in TH_UPPER_VOWELS and th_3 not in TH_TONE_MARKS:
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+1])
+                i += 1
+            elif th_2 in TH_UNDER_VOWELS and th_3 not in TH_TONE_MARKS:
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+1])
+                i += 1
+            elif th_2 in TH_SARA_AM and th_3 not in TH_TONE_MARKS:
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+1])
+                i += 1
+            else:
+                th_sign_grouping_text.append(splitted_text[i])
+            
+        elif i < len(splitted_text)-1:
+            th_2 = "{0:#x}".format(ord(splitted_text[i+1]))
+            if th_2 in TH_TONE_MARKS:
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+1])
+                i += 1
+            elif th_2 in TH_UNDER_VOWELS:
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+1])
+                i += 1
+            elif th_2 in TH_UPPER_VOWELS:
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+1])
+                i += 1
+            elif th_2 in TH_SARA_AM:
+                th_sign_grouping_text.append(splitted_text[i]+splitted_text[i+1])
+                i += 1
+            else:
+                th_sign_grouping_text.append(splitted_text[i])
 
+        else:
+            th_sign_grouping_text.append(splitted_text[i])
+        i += 1
+    
+    splitted_text = th_sign_grouping_text
+    print(splitted_text)  
     piece_widths = [
         _compute_character_width(image_font, p) if p != " " else space_width
         for p in splitted_text
@@ -144,8 +204,28 @@ def _generate_horizontal_text(
         rnd.randint(min(stroke_c1[1], stroke_c2[1]), max(stroke_c1[1], stroke_c2[1])),
         rnd.randint(min(stroke_c1[2], stroke_c2[2]), max(stroke_c1[2], stroke_c2[2])),
     )
-    txt_img_draw.text((0,int(0.5*font_size)), text, fill=fill, font=image_font, stroke_width=stroke_width, stroke_fill=stroke_fill)
-    txt_mask_draw.text((0,0), text, fill=(255,255,255), font=image_font, stroke_width=stroke_width, stroke_fill=stroke_fill)
+    
+    for i, p in enumerate(splitted_text):
+        # print(i)
+        txt_img_draw.text(
+            (sum(piece_widths[0:i]) + i * character_spacing * int(not word_split), int(0.5*font_size)),
+            p,
+            fill=fill,
+            font=image_font,
+            stroke_width=stroke_width,
+            stroke_fill=stroke_fill,
+        )
+        txt_mask_draw.text(
+            (sum(piece_widths[0:i]) + i * character_spacing * int(not word_split), int(0.5*font_size)),
+            p,
+            fill=((i + 1) // (255 * 255), (i + 1) // 255, (i + 1) % 255),
+            font=image_font,
+            stroke_width=stroke_width,
+            stroke_fill=stroke_fill,
+        )
+            
+    # txt_img_draw.text((0,int(0.5*font_size)), text, fill=fill, font=image_font, stroke_width=stroke_width, stroke_fill=stroke_fill)
+    # txt_mask_draw.text((0,int(0.5*font_size)), text, fill=(255,255,255), font=image_font, stroke_width=stroke_width, stroke_fill=stroke_fill)
     # for i, p in enumerate(splitted_text):
     #     print(i)
     #     txt_img_draw.text(
