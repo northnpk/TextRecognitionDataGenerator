@@ -70,7 +70,7 @@ def _compute_character_width(image_font: ImageFont, character: str) -> int:
     # Casting as int to preserve the old behavior
     return round(image_font.getlength(character))
 
-def th_grouping(splitted_text : list) -> list:
+def th_grouping(splitted_text : list):
     th_sign_grouping_text = []
     i = 0
     while i < len(splitted_text):
@@ -169,7 +169,6 @@ def _generate_horizontal_text(
     else:
         splitted_text = th_grouping(text)
         
-    print(splitted_text)  
     piece_widths = [
         _compute_character_width(image_font, p) if p != " " else space_width
         for p in splitted_text
