@@ -61,7 +61,6 @@ def generate(
     else:
         raise ValueError("Unknown orientation " + str(orientation))
 
-
 def _compute_character_width(image_font: ImageFont, character: str) -> int:
     if len(character) == 1 and (
         "{0:#x}".format(ord(character))
@@ -70,46 +69,8 @@ def _compute_character_width(image_font: ImageFont, character: str) -> int:
         return 0
     # Casting as int to preserve the old behavior
     return round(image_font.getlength(character))
-def _compute_character_height(image_font: ImageFont, character: str, next_char: str) -> int:
-    if len(character) == 1 and (
-        "{0:#x}".format(ord(character))
-        in TH_UNDER_VOWELS + TH_UNDER_VOWELS
-    ):
-        return 0
-    elif len(character) == 1 and (
-        "{0:#x}".format(ord(character))
-        in TH_UPPER_VOWELS + TH_TONE_MARKS
-    ) and len(next_char) == 1 and ("{0:#x}".format(ord(character))
-        in TH_TONE_MARKS + TH_UPPER_VOWELS):
-        return round(image_font.getsize(character)[1]+image_font.getsize(next_char)[1]-image_font.getsize('ก')[1])
-    # Casting as int to preserve the old behavior
-    return round(image_font.getsize(character)[1])
 
-def _generate_horizontal_text(
-    text: str,
-    font: str,
-    text_color: str,
-    font_size: int,
-    space_width: int,
-    character_spacing: int,
-    fit: bool,
-    word_split: bool,
-    stroke_width: int = 0,
-    stroke_fill: str = "#282828",
-) -> Tuple:
-    image_font = ImageFont.truetype(font=font, size=font_size, layout_engine=ImageFont.Layout.RAQM)
-
-    space_width = int(get_text_width(image_font, " ") * space_width)
-
-    if word_split:
-        splitted_text = []
-        for w in text.split(" "):
-            splitted_text.append(w)
-            splitted_text.append(" ")
-        splitted_text.pop()
-    else:
-        splitted_text = text
-        
+def th_grouping(splitted_text : list) -> list:
     th_sign_grouping_text = []
     i = 0
     while i < len(splitted_text):
@@ -166,8 +127,48 @@ def _generate_horizontal_text(
         else:
             th_sign_grouping_text.append(splitted_text[i])
         i += 1
-    
-    splitted_text = th_sign_grouping_text
+    return th_sign_grouping_text
+
+def _compute_character_height(image_font: ImageFont, character: str, next_char: str) -> int:
+    if len(character) == 1 and (
+        "{0:#x}".format(ord(character))
+        in TH_UNDER_VOWELS + TH_UNDER_VOWELS
+    ):
+        return 0
+    elif len(character) == 1 and (
+        "{0:#x}".format(ord(character))
+        in TH_UPPER_VOWELS + TH_TONE_MARKS
+    ) and len(next_char) == 1 and ("{0:#x}".format(ord(character))
+        in TH_TONE_MARKS + TH_UPPER_VOWELS):
+        return round(image_font.getsize(character)[1]+image_font.getsize(next_char)[1]-image_font.getsize('ก')[1])
+    # Casting as int to preserve the old behavior
+    return round(image_font.getsize(character)[1])
+
+def _generate_horizontal_text(
+    text: str,
+    font: str,
+    text_color: str,
+    font_size: int,
+    space_width: int,
+    character_spacing: int,
+    fit: bool,
+    word_split: bool,
+    stroke_width: int = 0,
+    stroke_fill: str = "#282828",
+) -> Tuple:
+    image_font = ImageFont.truetype(font=font, size=font_size, layout_engine=ImageFont.Layout.RAQM)
+
+    space_width = int(get_text_width(image_font, " ") * space_width)
+
+    if word_split:
+        splitted_text = []
+        for w in text.split(" "):
+            splitted_text.append(w)
+            splitted_text.append(" ")
+        splitted_text.pop()
+    else:
+        splitted_text = th_grouping(text)
+        
     print(splitted_text)  
     piece_widths = [
         _compute_character_width(image_font, p) if p != " " else space_width
